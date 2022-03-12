@@ -9,8 +9,8 @@ def create_courses_json():
     parser = argparse.ArgumentParser()
     parser.add_argument('course_file_directory')
     parser.add_argument('output_file_dir')
-    parser.add_argument('semester')
     parser.add_argument('year')
+    parser.add_argument('semester')
     args = parser.parse_args()
 
     file_list = os.listdir(args.course_file_directory)
