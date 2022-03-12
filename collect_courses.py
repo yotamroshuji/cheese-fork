@@ -15,7 +15,7 @@ def create_courses_json():
 
     file_list = os.listdir(args.course_file_directory)
     semester_number = '01' if args.semester == 'a' else '02'
-    output_file_path = os.path.join(args.output_file_dir, f'courses_{args.year}{semester_number}.js')
+    output_file_path = os.path.join(args.output_file_dir, f'courses_{args.year}{semester_number}.min.js')
     all_courses = []
     for course_file_name in file_list:
         course_file_path = os.path.join(args.course_file_directory, course_file_name)
