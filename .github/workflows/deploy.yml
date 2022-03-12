@@ -35,10 +35,10 @@ jobs:
       - name: Save courses into correct format
         run: |
           python collect_courses.py huji-cheesefork/downloaded_courses ./deploy/courses ${{env.YEAR}} ${{env.SEMESTER}}
-#      - name: Deploy
-#        uses: peaceiris/actions-gh-pages@v3
-#        with:
-#          github_token: ${{ secrets.GITHUB_TOKEN }}
-#          publish_dir: ./deploy
-#          user_name: 'github-actions[bot]'
-#          user_email: 'github-actions[bot]@users.noreply.github.com'
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deploy
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
