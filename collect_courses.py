@@ -1,6 +1,5 @@
 import argparse
 import json
-import sys
 import os
 
 
@@ -25,7 +24,7 @@ def create_courses_json():
     js_variable = f'var courses_from_rishum = {json.dumps(all_courses, ensure_ascii=False)}'
 
     with open(output_file_path, 'w') as f:
-        json.dump(js_variable, f, ensure_ascii=False)
+        f.write(js_variable)
 
 
 if __name__ == '__main__':
