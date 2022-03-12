@@ -884,19 +884,19 @@
 
     function firebaseInit() {
         var config = {
-            apiKey: 'AIzaSyAfKPyTM83mkLgdQTdx9YS9UXywiswwIYI',
-            authDomain: 'cheesefork-de9af.firebaseapp.com',
-            databaseURL: 'https://cheesefork-de9af.firebaseio.com',
-            projectId: 'cheesefork-de9af',
-            storageBucket: 'cheesefork-de9af.appspot.com',
-            messagingSenderId: '916559682433'
+            apiKey: 'AIzaSyBHnP6cxtcRXawUdKHemSBAazpAjNXBBsk',
+            authDomain: 'hucheesefork.firebaseapp.com',
+            databaseURL: 'https://hucheesefork.firebaseio.com',
+            projectId: 'hucheesefork',
+            storageBucket: 'hucheesefork.appspot.com',
+            messagingSenderId: '78419532009'
         };
         firebase.initializeApp(config);
 
         firestoreDb = firebase.firestore();
         firestoreDb.settings({timestampsInSnapshots: true}); // silence a warning
 
-        firebaseStorage = firebase.app().storage('gs://files.cheesefork.cf');
+        firebaseStorage = firebase.app().storage('gs://hucheesefork.appspot.com');
     }
 
     function firebaseAuthUIInit(onInitialized) {
