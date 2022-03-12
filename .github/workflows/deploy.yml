@@ -9,7 +9,8 @@ jobs:
     env:
       COURSES: 67109 69166 72155 76563 80031 80035 80131 80135
       SEMESTER: b
-      YEAR: 2022
+      HUJIYEAR: 2022
+      CHEESEYEAR: 2021
     steps:
       - uses: actions/checkout@v3
         with:
@@ -30,11 +31,11 @@ jobs:
         run: |
           cd huji-cheesefork
           mkdir downloaded_courses
-          python downloader.py -c ${{env.COURSES}} -s ${{env.SEMESTER}} -y ${{env.YEAR}} -d downloaded_courses
+          python downloader.py -c ${{env.COURSES}} -s ${{env.SEMESTER}} -y ${{env.HUJIYEAR}} -d downloaded_courses
           cd ..
       - name: Save courses into correct format
         run: |
-          python collect_courses.py huji-cheesefork/downloaded_courses ./deploy/courses ${{env.YEAR}} ${{env.SEMESTER}}
+          python collect_courses.py huji-cheesefork/downloaded_courses ./deploy/courses ${{env.CHEESEYEAR}} ${{env.SEMESTER}}
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
