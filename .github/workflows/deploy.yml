@@ -6,6 +6,11 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      COURSES: 67109 69166 72155 76563 80031 80035 80131 80135 67315
+      SEMESTER: b
+      HUJIYEAR: 2022
+      CHEESEYEAR: 2021
     steps:
       - uses: actions/checkout@v2
         with:
@@ -23,22 +28,18 @@ jobs:
           pip install -r requirements.txt
           cd ..
       - name: Download specific courses
-        env:
-          COURSES: 67109 69166 72155 76563 80031 80035 80131 80135
-          SEMESTER: b
-          YEAR: 2022
         run: |
           cd huji-cheesefork
           mkdir downloaded_courses
-          python downloader.py -c ${{env.COURSES}} -s ${{env.SEMESTER}} -y ${{env.YEAR}} -d downloaded_courses
+          python downloader.py -c ${{env.COURSES}} -s ${{env.SEMESTER}} -y ${{env.HUJIYEAR}} -d downloaded_courses
           cd ..
       - name: Save courses into correct format
         run: |
-          python collect_courses.py huji-cheesefork/downloaded_courses deploy/courses ${{env.YEAR}} ${{env.SEMESTER}}
-#      - name: Deploy
-#        uses: peaceiris/actions-gh-pages@v3
-#        with:
-#          github_token: ${{ secrets.GITHUB_TOKEN }}
-#          publish_dir: ./deploy
-#          user_name: 'github-actions[bot]'
-#          user_email: 'github-actions[bot]@users.noreply.github.com'
+          python collect_courses.py huji-cheesefork/downloaded_courses ./deploy/courses ${{env.CHEESEYEAR}} ${{env.SEMESTER}}
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./deploy
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
