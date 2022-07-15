@@ -318,7 +318,10 @@
         '202003': {start: '2021-08-01', end: '2021-10-04'},
         '202101': {start: '2021-10-24', end: '2022-01-27'},
         '202102': {start: '2022-03-20', end: '2022-06-30'},
-        //'202103': {start: '2022-07-31', end: '2022-09-15'},
+        '202103': {start: '2022-07-31', end: '2022-09-15'},
+        '202201': {start: '2022-10-24', end: '2023-01-27'},
+        //'202202': {start: '2023-03-20', end: '2023-06-30'},
+        //'202203': {start: '2023-07-31', end: '2023-09-15'},
     };
     var currentSemester;
     var scheduleSharingUserId;
@@ -336,7 +339,12 @@
 
         currentSemester = getParameterByName('semester');
         if (!currentSemester || !availableSemesters[currentSemester]) {
-            currentSemester = localStorage.getItem('lastSelectedSemester');
+            try {
+                currentSemester = localStorage.getItem('lastSelectedSemester');
+            } catch (e) {
+                // localStorage is not available in IE/Edge when running from a local file.
+            }
+
             if (!currentSemester || !availableSemesters[currentSemester]) {
                 currentSemester = Object.keys(availableSemesters).sort().pop();
             }
@@ -349,7 +357,11 @@
             getParameterByName('staff') === null &&
             getParameterByName('room') === null
         ) {
-            localStorage.setItem('lastSelectedSemester', currentSemester);
+            try {
+                localStorage.setItem('lastSelectedSemester', currentSemester);
+            } catch (e) {
+                // localStorage is not available in IE/Edge when running from a local file.
+            }
         }
 
         var script = document.createElement('script');
