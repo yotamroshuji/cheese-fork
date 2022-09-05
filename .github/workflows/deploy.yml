@@ -40,8 +40,8 @@ jobs:
           cd ..
       - name: Save courses into correct format
         run: |
-          python collect_courses.py huji-cheesefork/downloaded_courses ./deploy/courses ${{env.CHEESEYEAR}} ${{env.SEMESTER_A}}
-          python collect_courses.py huji-cheesefork/downloaded_courses ./deploy/courses ${{env.CHEESEYEAR}} ${{env.SEMESTER_B}}
+          python collect_courses.py huji-cheesefork/downloaded_courses ./deploy/courses ${{env.CHEESEYEAR}} ${{env.HUJIYEAR}} ${{env.SEMESTER_A}}
+          python collect_courses.py huji-cheesefork/downloaded_courses ./deploy/courses ${{env.CHEESEYEAR}} ${{env.HUJIYEAR}} ${{env.SEMESTER_B}}
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
