@@ -872,16 +872,23 @@
                 // https://stackoverflow.com/q/41938969
                 cacheControl: 'public, max-age=0'
             }).then(function (snapshot) {
-                var urlElement = $('<a target="_blank" rel="noopener">לחצו כאן להורדה</a>').prop('href', calendarUrl);
-                exportCalendarDialog.getModalBody().find('.calendar-link-placeholder').html(urlElement);
+                calFileRef.getDownloadURL().then(function(downloadURL) {
+                    var urlElement = $('<a target="_blank" rel="noopener">לחצו כאן להורדה</a>').prop('href', downloadURL);
+                    exportCalendarDialog.getModalBody().find('.calendar-link-placeholder').html(urlElement);
+                    exportCalendarDialog.getButton('copy-link').action = function (dialog) {
+                        copyToClipboard(downloadURL, function () {
+                            dialog.close();
+                        }, function () {
+                            alert('ההעתקה נכשלה');
+                        });
+                    }
+                    exportCalendarDialog.getButton('copy-link').enable();
+                });
 
-                exportCalendarDialog.getButton('copy-link').enable();
             }, function (error) {
                 alert('Error saving calendar to server: ' + error.message);
             });
-            calFileRef.getDownloadURL().then(function(downloadURL) {
-                console.log('File available at', downloadURL);
-            });
+
         });
     }
 
