@@ -847,7 +847,7 @@
             }, function (error) {
                 alert('Error saving calendar to server: ' + error.message);
             });
-            calFileRef.getDownloadUrl().then(function(downloadURL) {
+            calFileRef.getDownloadURL().then(function(downloadURL) {
                 console.log('File available at', downloadURL);
             });
         });
