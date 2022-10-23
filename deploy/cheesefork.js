@@ -849,10 +849,12 @@
                     label: 'העתק קישור',
                     cssClass: 'btn-primary',
                     action: function (dialog) {
-                        copyToClipboard(calendarUrl, function () {
-                            dialog.close();
-                        }, function () {
-                            alert('ההעתקה נכשלה');
+                        calFileRef.getDownloadURL().then(function(downloadURL) {
+                            copyToClipboard(downloadURL, function () {
+                                dialog.close();
+                            }, function () {
+                                alert('ההעתקה נכשלה');
+                            });
                         });
                     }
                 }, {
@@ -875,13 +877,6 @@
                 calFileRef.getDownloadURL().then(function(downloadURL) {
                     var urlElement = $('<a target="_blank" rel="noopener">לחצו כאן להורדה</a>').prop('href', downloadURL);
                     exportCalendarDialog.getModalBody().find('.calendar-link-placeholder').html(urlElement);
-                    exportCalendarDialog.getButton('copy-link').action = function (dialog) {
-                        copyToClipboard(downloadURL, function () {
-                            dialog.close();
-                        }, function () {
-                            alert('ההעתקה נכשלה');
-                        });
-                    }
                     exportCalendarDialog.getButton('copy-link').enable();
                 });
 
