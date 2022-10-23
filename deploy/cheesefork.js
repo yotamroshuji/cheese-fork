@@ -800,7 +800,7 @@
             }
 
             var calFilePath = firebase.auth().currentUser.uid + '/' + semesterFriendlyNameForFileName(currentSemester) + '.ics';
-            var calendarUrl = 'https://files.cheesefork.cf/' + calFilePath;
+            var calendarUrl = 'https://hucheesefork.appspot.com/' + calFilePath;
 
             var exportCalendarDialog = BootstrapDialog.show({
                 title: ' ייצוא לקובץ iCalendar',
