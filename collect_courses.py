@@ -65,7 +65,7 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
     return {'general': course_general_dict, 'schedule': course_schedule}
 
 
-async def collect_by_id(year: int, course_ids: List[str]) -> List[Course]:
+async def collect_by_id(course_ids: List[str], year: int) -> List[Course]:
     async with ShnatonCourseScraper(course_ids, year) as scraper:
         return await scraper.scrape()
 
@@ -128,7 +128,7 @@ async def main():
     if args.course_file:
         with open(args.course_file, 'r') as f:
             course_ids = [line for line in f.read().split('\n') if line]
-            scrape_coros.append(collect_by_id(args.year, course_ids))
+            scrape_coros.append(collect_by_id(course_ids, args.year))
 
     if args.maslul_csv:
         with open(args.maslul_csv, 'r') as f:

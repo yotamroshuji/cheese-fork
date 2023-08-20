@@ -26,8 +26,8 @@ jobs:
           pip install hujiscrape
       - name: Download courses
         run: |
-          python collect_courses.py -c courses.txt -m masluls.csv -y ${{env.HUJIYEAR}} -s A --o ./deploy/courses/courses_${{env.CHEESEYEAR}}01.min.js
-          python collect_courses.py -c courses.txt -m masluls.csv -y ${{env.HUJIYEAR}} -s B --o ./deploy/courses/courses_${{env.CHEESEYEAR}}02.min.js
+          python collect_courses.py -f courses.txt -m masluls.csv -y ${{env.HUJIYEAR}} -s A -o ./deploy/courses/courses_${{env.CHEESEYEAR}}01.min.js
+          python collect_courses.py -f courses.txt -m masluls.csv -y ${{env.HUJIYEAR}} -s B -o ./deploy/courses/courses_${{env.CHEESEYEAR}}02.min.js
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
