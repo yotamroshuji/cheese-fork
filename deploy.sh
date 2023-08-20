@@ -1,12 +1,24 @@
 #!/bin/bash
 
-semester_1=202102
-semester_2=202103
-semester_3=202201
-semester_next=202202
+semester_1=202202
+semester_2=202203
+semester_3=202301
+semester_next=202302
+
+function technion_url_get {
+	local url=$1
+	if [[ -z "${COURSE_INFO_FETCHER_PROXY_URL}" ]] && [[ -z "${COURSE_INFO_FETCHER_PROXY_AUTH}" ]]; then
+		curl -s -x "$COURSE_INFO_FETCHER_PROXY" "$url"
+	else
+		curl -s "$COURSE_INFO_FETCHER_PROXY_URL" --header "Proxy-Auth: $COURSE_INFO_FETCHER_PROXY_AUTH" --header "Proxy-Target-URL: $url"
+	fi
+}
 
 function semester_available {
-	curl -s 'https://students.technion.ac.il/local/technionsearch/search' | grep -qF 'name="semesterscheckboxgroup['$1']"'
+	local semester=$1
+	echo Checking semester $semester availability...
+
+	technion_url_get 'https://students.technion.ac.il/local/technionsearch/search' | grep -qF 'name="semesterscheckboxgroup['$semester']"'
 }
 
 function fetch_semester {
@@ -39,13 +51,17 @@ function fetch_semester {
 	return 0
 }
 
+# Check semester availability.
+semester_available $semester_1 || exit 1
+semester_available $semester_2 || exit 1
+semester_available $semester_3 || exit 1
+semester_available $semester_next && exit 1
+
 # Fetch last three semesters.
 fetch_semester $semester_1 || exit 1
 fetch_semester $semester_2 || exit 1
 fetch_semester $semester_3 || exit 1
 
-# Make sure next semester is not available yet.
-semester_available $semester_3 || exit 1
-semester_available $semester_next && exit 1
+echo Done
 
 exit 0

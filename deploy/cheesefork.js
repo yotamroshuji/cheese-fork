@@ -27,9 +27,11 @@
     }
 
     function cheeseforkInit() {
-        // Use overlayScrollbars only if the scrollbar has width.
-        // On desktop it usually does, on mobile it ususally doesn't.
-        if (getScrollBarWidth() > 0) {
+        // Use overlayScrollbars only if the scrollbar has width. On desktop it
+        // usually does, on mobile it usually doesn't. It can be a very small
+        // non-zero number such as 0.0002 as well, only consider significant
+        // width.
+        if (getScrollBarWidth() > 0.5) {
             $('body').overlayScrollbars({ }).removeClass('os-host-rtl');
         }
 
@@ -228,11 +230,13 @@
         // So here we cause the color of 114246 to be different.
         // Similar fixup: pink 124503, 124708 and 134019.
         // Similar fixup: green 334222 and 336537.
+        // Similar fixup: green 034055 and 114052.
         var coursePrefixForHashCalc = {
             '114246': 'a',
             '124708': 'c',
             '134019': 'a',
             '336537': 'a',
+            '034055': 'a',
         };
         if (coursePrefixForHashCalc[str]) {
             str = coursePrefixForHashCalc[str] + str;
@@ -761,6 +765,14 @@
             // Schedule.
             var dateFrom = availableSemesters[currentSemester].start;
             var dateTo = availableSemesters[currentSemester].end;
+
+            // This is a workaround for a crazy Outlook bug. Recurring events
+            // that start from 26 or 27 of March 2023 are shifted by several
+            // hours.
+            if (dateFrom === '2023-03-21') {
+                dateFrom = '2023-03-19';
+            }
+
             courseCalendar.saveAsIcs(icsCal, dateFrom, dateTo);
 
             // Exams.

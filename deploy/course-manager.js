@@ -56,14 +56,12 @@ CourseManager.prototype.getSchedule = function (course) {
             comment = comment.replace(/(^|[^א-ת])(ה?ס)(דנ|ד|נ)(א|ה|אות)($|[^א-ת])/g, '$1$2דנ$4$5');
 
             // Add a newline for a single workshop.
-            comment = comment.replace(/^(סדנת רשות:) (ב?ימי|יום )/mg, '$1\n$2');
+            comment = comment.replace(/^(סדנת רשות:)\s*(ב?ימי|יום)(\s)/mg, '$1\n$2$3');
 
             var commentLines = comment.split('\n');
             for (var i = 0; i < commentLines.length; i++) {
                 var line = commentLines[i];
-                // Check if the line starts with a required prefix.
-                // https://stackoverflow.com/a/4579228
-                if (line.lastIndexOf('סדנאות', 0) === 0 || line.lastIndexOf('סדנת', 0) === 0) {
+                if (line.match(/^סדנ(ת|ה|א|אות)[: ]/)) {
                     var workshopsTa = '';
                     var match = /(?:\n|^)מתרגל[ית]? ה?סדנ(?:א|ה|אות).*?:\s*([\s\S]*?)\s*(?:=|$)/.exec(comment);
                     if (match) {
@@ -74,7 +72,7 @@ CourseManager.prototype.getSchedule = function (course) {
                     var workshopId = 101;
                     for (i++; i < commentLines.length; i++) {
                         line = commentLines[i];
-                        match = /^ב?(?:ימי|יום) ([א-ת]+)'?,? (\d+)\.(\d+)-(\d+)\.(\d+)(?:\s*,\s*(.*?)(?:\s+(\d+))?(?:\s*,\s*(.*?))?)?$/.exec(line);
+                        match = /^ב?(?:ימי|יום) ([א-ת]+)'?,?\s*(\d+)\.(\d+)-(\d+)\.(\d+)(?:\s*,\s*(.*?)(?:\s+(\d+))?(?:\s*,\s*(.*?))?)?$/.exec(line);
                         if (!match) {
                             break;
                         }
@@ -115,13 +113,23 @@ CourseManager.prototype.getSchedule = function (course) {
                             break;
                         }
 
+                        var startTime = match[2] + ':' + match[3];
+                        var endTime = match[4] + ':' + match[5];
+                        var time = startTime + ' - ' + endTime;
+
+                        // Make sure the start time is before the end time.
+                        var timeParsed = that.parseLessonTime(time);
+                        if (timeParsed.end !== '00:00' && timeParsed.start > timeParsed.end) {
+                            time = endTime + ' - ' + startTime;
+                        }
+
                         workshops.push({
                             'קבוצה': workshopId,
                             'מס.': workshopId,
                             'סוג': 'sadna',
                             'מרצה/מתרגל': match[8] || workshopsTa,
                             'יום': day,
-                            'שעה': match[2] + ':' + match[3] + ' - ' + match[4] + ':' + match[5],
+                            'שעה': time,
                             'בניין': building,
                             'חדר': match[7] || ''
                         });
@@ -242,27 +250,27 @@ CourseManager.prototype.getDescription = function (course, options) {
     if (options.links) {
         var loggingProps = options.logging ? ' onclick="gtag(\'event\', \'info-click-link-rishum\')"' : '';
         linksHtml += '<br><br><a href="https://students.technion.ac.il/local/technionsearch/course/' + course + '" target="_blank" rel="noopener"' + loggingProps + '>' +
-            '<img src="assets/icon_rishum.png" alt="icon"> אתר הרישום</a>';
+            '<img src="assets/icon-students.png" alt="icon" width="16" height="16"> פורטל הסטודנטים</a>';
 
         if (/^23\d\d\d\d$/.test(course)) {
             // Only for computer science courses.
             loggingProps = options.logging ? ' onclick="gtag(\'event\', \'info-click-link-webcourse\')"' : '';
             linksHtml += '<br><a href="https://webcourse.cs.technion.ac.il/' + course + '/" target="_blank" rel="noopener"' + loggingProps + '>' +
-                '<img src="assets/icon_webcourse.png" alt="icon"> אתר ה-WebCourse</a>';
+                '<img src="assets/icon-webcourse.png" alt="icon" width="16" height="16"> אתר ה-WebCourse</a>';
         }
 
         loggingProps = options.logging ? ' onclick="gtag(\'event\', \'info-click-link-facebook\')"' : '';
         linksHtml += '<br><a href="https://www.facebook.com/search/groups/?q=' + course + '" target="_blank" rel="noopener"' + loggingProps + '>' +
-            '<img src="assets/icon_facebook.png" alt="icon"> חיפוש קבוצה בפייסבוק</a>';
+            '<img src="assets/icon-facebook.png" alt="icon" width="16" height="16"> חיפוש קבוצה בפייסבוק</a>';
 
         loggingProps = options.logging ? ' onclick="gtag(\'event\', \'info-click-link-tscans\')"' : '';
         linksHtml += '<br><a href="https://tscans.cf/?course=' + course + '" target="_blank" rel="noopener"' + loggingProps + '>' +
-            '<img src="assets/icon_scans.png" alt="icon"> סריקות</a>';
+            '<img src="assets/icon-scans.png" alt="icon" width="16" height="16"> סריקות</a>';
 
         if (options.whatsappGroupLink) {
             loggingProps = options.logging ? ' onclick="gtag(\'event\', \'info-click-link-whatsapp\')"' : '';
             linksHtml += '<br><a href="#" class="whatsapp-group-link"' + loggingProps + '>' +
-                '<img src="assets/icon_whatsapp.png" alt="icon"> קבוצת וואטסאפ/טלגרם</a>';
+                '<img src="assets/icon-whatsapp.png" alt="icon" width="16" height="16"> קבוצת וואטסאפ/טלגרם</a>';
         }
     }
 
