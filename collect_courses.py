@@ -66,13 +66,13 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
 
 
 async def collect_by_id(course_ids: List[str], year: int) -> List[Course]:
-    async with ShnatonCourseScraper(course_ids, year) as scraper:
+    async with ShnatonCourseScraper(course_ids, year, concurrent_requests=20) as scraper:
         return await scraper.scrape()
 
 
 async def collect_maslul(year: int, faculty: str, hug: str, maslul: str, toar: Toar = None,
                          toar_year: ToarYear = None) -> List[Course]:
-    async with MaslulAllPageScraper(year, faculty, hug, maslul, toar, toar_year) as scraper:
+    async with MaslulAllPageScraper(year, faculty, hug, maslul, toar, toar_year, concurrent_requests=20) as scraper:
         return await scraper.scrape()
 
 
