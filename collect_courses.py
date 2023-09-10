@@ -141,7 +141,7 @@ async def main():
     course_list_list: List[List[Course]] = await asyncio.gather(*scrape_coros)
     courses = [course for course_list in course_list_list for course in course_list]
     js_variable = prepare_cheese_format(courses, args.semester)
-    with open(args.output_file, 'w') as f:
+    with open(args.output_file, 'w', encoding='utf-8') as f:
         f.write(js_variable)
 
 
