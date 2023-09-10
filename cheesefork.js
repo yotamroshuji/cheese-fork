@@ -600,6 +600,8 @@
     }
 
     function navbarInit() {
+        $('#top-navbar-print-section-title').text(semesterFriendlyName(currentSemester));
+
         if (!viewingSharedSchedule) {
             var semesterSelect = $('#top-navbar-semester').find('.dropdown-menu');
 
@@ -667,7 +669,25 @@
 
                 gtag('event', 'navbar-logout');
 
-                firebase.auth().signOut();
+                $(this).find('[data-toggle="tooltip"]').tooltip('hide');
+
+                BootstrapDialog.show({
+                    title: 'יציאה מהמערכת',
+                    message: 'האם אתם בטוחים שברצונכם לצאת מהמערכת?',
+                    buttons: [{
+                        label: 'יציאה',
+                        cssClass: 'btn-primary',
+                        action: function (dialog) {
+                            firebase.auth().signOut();
+                            dialog.close();
+                        }
+                    }, {
+                        label: 'ביטול',
+                        action: function (dialog) {
+                            dialog.close();
+                        }
+                    }]
+                });
             });
 
             $('#top-navbar-share').click(function (event) {
@@ -960,6 +980,10 @@
 
         function handleSignedOutUser() {
             $('#top-navbar-logout').addClass('d-none');
+
+            $('#top-navbar-logout').removeClass('d-none')
+                .find('a').attr('data-original-title', 'מחובר בתור: ' + firestoreDisplayNameDecode('משתמש לא מזוהה'));
+
             $('#top-navbar-login').removeClass('d-none');
             $('#top-navbar-share').find('a').addClass('disabled').tooltip('enable');
             firebaseUI.start('#firebaseui-auth-container', uiConfig);
