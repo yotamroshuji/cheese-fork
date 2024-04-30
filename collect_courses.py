@@ -8,6 +8,8 @@ from typing import List, Dict, Set
 
 from hujiscrape import ShnatonCourseScraper, Course, Semester, Toar, ToarYear, MaslulAllPageScraper
 
+DEFAULT_CONCURRENT_REQUESTS = 5
+
 
 def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
     course_general_dict = {
@@ -65,14 +67,17 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
     return {'general': course_general_dict, 'schedule': course_schedule}
 
 
-async def collect_by_id(course_ids: List[str], year: int) -> List[Course]:
-    async with ShnatonCourseScraper(course_ids, year, concurrent_requests=20) as scraper:
+async def collect_by_id(course_ids: List[str], year: int,
+                        concurrent_requests: int = DEFAULT_CONCURRENT_REQUESTS) -> List[Course]:
+    async with ShnatonCourseScraper(course_ids, year, concurrent_requests=concurrent_requests) as scraper:
         return await scraper.scrape()
 
 
 async def collect_maslul(year: int, faculty: str, hug: str, maslul: str, toar: Toar = None,
-                         toar_year: ToarYear = None) -> List[Course]:
-    async with MaslulAllPageScraper(year, faculty, hug, maslul, toar, toar_year, concurrent_requests=20) as scraper:
+                         toar_year: ToarYear = None,
+                         concurrent_requests: int = DEFAULT_CONCURRENT_REQUESTS) -> List[Course]:
+    async with MaslulAllPageScraper(year, faculty, hug, maslul, toar, toar_year,
+                                    concurrent_requests=concurrent_requests) as scraper:
         return await scraper.scrape()
 
 
@@ -116,6 +121,7 @@ async def main():
     # TODO: currently only support A and B semesters (not summer)
     parser.add_argument('-s', '--semester', choices=[Semester.A, Semester.B],
                         type=Semester.__getitem__, required=True)
+    parser.add_argument('-r', '--concurrent-requests', default=DEFAULT_CONCURRENT_REQUESTS, type=int)
     args = parser.parse_args()
 
     if args.verbose:
@@ -123,7 +129,7 @@ async def main():
 
     scrape_coros = []
     if args.courses:
-        scrape_coros.append(collect_by_id(args.courses, args.year))
+        scrape_coros.append(collect_by_id(args.courses, args.year, args.concurrent_requests))
 
     if args.course_file:
         with open(args.course_file, 'r') as f:
