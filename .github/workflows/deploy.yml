@@ -9,8 +9,8 @@ jobs:
   update:
     runs-on: ubuntu-latest
     env:
-      HUJIYEAR: 2024
-      CHEESEYEAR: 2023
+      HUJIYEAR: 2025
+      CHEESEYEAR: 2024
     steps:
       - uses: actions/checkout@v3
         with:
