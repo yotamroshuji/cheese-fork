@@ -224,7 +224,7 @@ async def main():
         for idx, semester in enumerate([Semester.A, Semester.B]):
             js_variable = prepare_cheese_format(courses, semester)
             # Year is always one less in cheesefork than it is in the shnaton
-            filename = f'courses_{args.year - 1}{idx + 1:02}.min.js.test'
+            filename = f'courses_{args.year - 1}{idx + 1:02}.min.js'
             with open(os.path.join(args.output_dir, filename), 'w', encoding='utf-8') as f:
                 f.write(js_variable)
 
