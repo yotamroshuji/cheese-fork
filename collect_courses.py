@@ -83,20 +83,35 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
 async def collect_by_id(
         course_ids: List[int | str],
         year: int,
-        allow_missing_courses: bool = False,
         include_exams: bool = True,
         concurrent_requests: int = DEFAULT_CONCURRENT_REQUESTS,
-        show_progress: bool = True
+        show_progress: bool = True,
+        fail_after_n_missing_courses: int = 0,
+        close_tcp_after_request: bool = False
 ) -> List[Course]:
+    """
+
+    :param course_ids: List of course ids to scrape
+    :param year: year to scrape
+    :param include_exams: should the exams be scraped as well
+    :param concurrent_requests: number of concurrent requests
+    :param show_progress: should a progress bar be shown
+    :param fail_after_n_missing_courses: if more than n courses are missing, raise an exception.
+                                         if 0, do not raise an exception
+    :param close_tcp_after_request: should the TCP connection be closed after each request.
+                                    this can help avoid some exceptions that can occur with the scraping.
+    :return:
+    """
     scraper = SingleCourseScraper(
-            fetcher=Fetcher(max_concurrency=concurrent_requests, tcp_socket_limit=20),
-            allow_missing_courses=allow_missing_courses,
+            fetcher=Fetcher(max_concurrency=concurrent_requests, tcp_socket_limit=20,
+                            force_close_tcp=close_tcp_after_request),
     )
     return await scraper.scrape(
         course_ids=course_ids,
         year=year,
         include_exams=include_exams,
-        show_progress=show_progress
+        show_progress=show_progress,
+        fail_after_n_missing_courses=fail_after_n_missing_courses
     )
 
 
@@ -139,13 +154,10 @@ async def main():
         p.add_argument('-y', '--year', type=int, required=True, help="Academic year to process.")
         p.add_argument('-r', '--concurrent-requests', default=DEFAULT_CONCURRENT_REQUESTS, type=int,
                             help="Number of concurrent requests.")
+        p.add_argument('-t', '--close-tcp-after-request', action='store_true',
+                            help="Close the TCP connection after each request. This slows down the scraping but can "
+                                 "help avoid some exceptions that can occur with the scraping.")
         p.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output.")
-
-    # General arguments for both modes
-    # parser.add_argument('-y', '--year', type=int, required=True, help="Academic year to process.")
-    # parser.add_argument('-r', '--concurrent-requests', default=DEFAULT_CONCURRENT_REQUESTS, type=int,
-    #                     help="Number of concurrent requests.")
-    # parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output.")
 
 
     subparsers = parser.add_subparsers(dest="mode", required=True)
@@ -165,6 +177,9 @@ async def main():
     scrape_parser.add_argument('-f', '--course_file', help="File with all the courses delimited by line breaks.")
     scrape_parser.add_argument('-o', '--output-dir', type=str, help="Output directory to save results.",
                                default=os.path.join('.', 'deploy', 'courses'))
+    scrape_parser.add_argument('-n', '--fail-after-n-missing-courses', type=int, default=0,
+                               help="Fail after n courses that weren't scraped fetched correctly. "
+                                    "This is helpful to detect general failures, or single course failures.")
     add_common_args_to_parser(scrape_parser)
 
     args = parser.parse_args()
@@ -176,10 +191,10 @@ async def main():
         courses = await collect_by_id(
             course_ids=list(range(args.min, args.max + 1)),
             year=args.year,
-            allow_missing_courses=True,
             include_exams=False,
             concurrent_requests=args.concurrent_requests,
-            show_progress=True
+            show_progress=True,
+            close_tcp_after_request=args.close_tcp_after_request
         )
         with open(args.output_file, 'w', encoding='utf-8') as f:
             f.write('\n'.join(sorted([course.course_id for course in courses], key=lambda x: int(x))))
@@ -199,10 +214,11 @@ async def main():
         courses = await collect_by_id(
             course_ids=[int(course_id) for course_id in courses_to_scrape],
             year=args.year,
-            allow_missing_courses=False,
             include_exams=True,
             concurrent_requests=args.concurrent_requests,
-            show_progress=True
+            show_progress=True,
+            fail_after_n_missing_courses=args.fail_after_n_missing_courses,
+            close_tcp_after_request=args.close_tcp_after_request,
         )
 
         for idx, semester in enumerate([Semester.A, Semester.B]):

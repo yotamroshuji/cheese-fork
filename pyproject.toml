@@ -8,7 +8,7 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
 dependencies = [
-    "hujiscrape (>=1.0.0,<2.0.0)"
+    "hujiscrape (==1.1.0a0)"
 ]
 
 [tool.poetry]
@@ -20,3 +20,4 @@ priority = "explicit"
 
 
 [tool.poetry.dependencies]
+hujiscrape = {allow-prereleases = true, source = "testpypi"}

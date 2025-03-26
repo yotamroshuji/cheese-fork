@@ -31,7 +31,7 @@ jobs:
       - name: Download courses
         run: |
           source .venv/bin/activate
-          python collect_courses.py scrape -f courses.txt -y ${{env.HUJIYEAR}} -r 100
+          python collect_courses.py scrape -f courses.txt -y ${{env.HUJIYEAR}} -r 100 -n 10
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
