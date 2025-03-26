@@ -21,6 +21,8 @@ jobs:
           python-version: '3.10'
       - name: Install Poetry
         uses: snok/install-poetry@v1.4.1
+      - name: Install project
+        run: poetry install --no-interaction
       - name: Download courses
         run: |
           python collect_courses.py scrape -f courses.txt -y ${{env.HUJIYEAR}} -r 100 -o
