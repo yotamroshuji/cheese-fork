@@ -16,18 +16,14 @@ jobs:
         with:
           submodules: true
       - name: Set up Python
-        uses: actions/setup-python@v4.7.0
+        uses: actions/setup-python@v5.5.0
         with:
-          python-version: 3.9
-      - name: Install requirements for hujiscrape
-        run: |
-          python -m pip install --upgrade pip
-          pip install wheel setuptools
-          pip install hujiscrape
+          python-version: 3.10
+      - name: Install Poetry
+        uses: snok/install-poetry@v1.4.1
       - name: Download courses
         run: |
-          python collect_courses.py -f courses.txt -m masluls.csv -y ${{env.HUJIYEAR}} -s A -o ./deploy/courses/courses_${{env.CHEESEYEAR}}01.min.js
-          python collect_courses.py -f courses.txt -m masluls.csv -y ${{env.HUJIYEAR}} -s B -o ./deploy/courses/courses_${{env.CHEESEYEAR}}02.min.js
+          python collect_courses.py scrape -f courses.txt -y ${{env.HUJIYEAR}} -r 100 -o
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:

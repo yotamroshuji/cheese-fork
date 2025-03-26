@@ -1,14 +1,16 @@
 import argparse
 import asyncio
-import csv
 import json
 import logging
 import os
 from typing import List, Dict, Set
 
-from hujiscrape import ShnatonCourseScraper, Course, Semester, Toar, ToarYear, MaslulAllPageScraper
+from hujiscrape.fetchers import Fetcher
+from hujiscrape.huji_objects import Course
+from hujiscrape.magics import Semester
+from hujiscrape.scrapers import SingleCourseScraper
 
-DEFAULT_CONCURRENT_REQUESTS = 5
+DEFAULT_CONCURRENT_REQUESTS = 100
 
 
 def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
@@ -20,8 +22,8 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
         "מעבדה": "0",
         "מקצועות ללא זיכוי נוסף": "",
         "מקצועות קדם": "",
-        "נקודות": str(course.points),
-        "סילבוס": "",
+        "נקודות": str(course.credits),
+        "סילבוס": course.syllabus_url,
         "סמינר/פרויקט": "0",
         "פקולטה": course.faculty,
         "שם מקצוע": course.hebrew_name,
@@ -29,10 +31,11 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
     }
 
     # Add exams if they exist. Only take the last relevant one (e.g. in course 67506)
-    for exam in course.exams:
+    for exam in (course.exams or []):
+
         # Only look at correct semester.
         # Note: only allowing "semester" to be in A and B.
-        if exam.semester != semester:
+        if Semester.from_hebrew(exam.semester) != semester:
             continue
 
         if "א'" in exam.moed:
@@ -43,8 +46,14 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
 
     course_schedule = []
     for lesson in course.schedule:
+        try:
+            lesson_semester = Semester.from_hebrew(lesson.semester)
+        except ValueError:
+            logging.info(f"Invalid semester for course {course.course_id}: {lesson.semester}. Skipping lesson.")
+            continue
+
         # Only add lessons in the requested semester or yearly lessons
-        if lesson.semester != semester and lesson.semester != Semester.Yearly:
+        if lesson_semester != semester and lesson_semester != Semester.Yearly:
             continue
 
         # If there are lessons without a day/time don't record them
@@ -52,6 +61,10 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
             continue
 
         from_hour, to_hour = lesson.time.split('-')
+
+        if lesson.day == '':
+            continue
+
         lesson_dict = {
             "מרצה/מתרגל": "\t".join(lesson.lecturers),
             "קבוצה": lesson.group,
@@ -67,24 +80,31 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
     return {'general': course_general_dict, 'schedule': course_schedule}
 
 
-async def collect_by_id(course_ids: List[str], year: int,
-                        concurrent_requests: int = DEFAULT_CONCURRENT_REQUESTS) -> List[Course]:
-    async with ShnatonCourseScraper(course_ids, year, concurrent_requests=concurrent_requests) as scraper:
-        return await scraper.scrape()
-
-
-async def collect_maslul(year: int, faculty: str, hug: str, maslul: str, toar: Toar = None,
-                         toar_year: ToarYear = None,
-                         concurrent_requests: int = DEFAULT_CONCURRENT_REQUESTS) -> List[Course]:
-    async with MaslulAllPageScraper(year, faculty, hug, maslul, toar, toar_year,
-                                    concurrent_requests=concurrent_requests) as scraper:
-        return await scraper.scrape()
+async def collect_by_id(
+        course_ids: List[int | str],
+        year: int,
+        allow_missing_courses: bool = False,
+        include_exams: bool = True,
+        concurrent_requests: int = DEFAULT_CONCURRENT_REQUESTS,
+        show_progress: bool = True
+) -> List[Course]:
+    scraper = SingleCourseScraper(
+            fetcher=Fetcher(max_concurrency=concurrent_requests, tcp_socket_limit=20),
+            allow_missing_courses=allow_missing_courses,
+    )
+    return await scraper.scrape(
+        course_ids=course_ids,
+        year=year,
+        include_exams=include_exams,
+        show_progress=show_progress
+    )
 
 
 def prepare_cheese_format(courses: List[Course], semester: Semester) -> str:
     cheese_courses: List[Dict] = []
     existing_course_ids: Set[str] = set()
     for course in courses:
+        course_semester = Semester.from_hebrew(course.semester)
 
         # Dedup the course
         if course.course_id in existing_course_ids:
@@ -95,60 +115,102 @@ def prepare_cheese_format(courses: List[Course], semester: Semester) -> str:
             continue
 
         # Check that the course matches the semester required.
-        if semester == Semester.A and course.semester not in (Semester.A, Semester.AB, Semester.Yearly):
+        if semester == Semester.A and course_semester not in (Semester.A, Semester.AB, Semester.Yearly):
             continue
-        if semester == Semester.B and course.semester not in (Semester.B, Semester.AB, Semester.Yearly):
+        if semester == Semester.B and course_semester not in (Semester.B, Semester.AB, Semester.Yearly):
             continue
 
         existing_course_ids.add(course.course_id)
-        cheese_courses.append(
-            hujiscrape_course_to_cheese(course, semester)
-        )
+        try:
+            cheese_courses.append(
+                hujiscrape_course_to_cheese(course, semester)
+            )
+        except Exception:
+            logging.warning("Failed to convert course %s", course.course_id)
+            raise
 
     return f'var courses_from_rishum = {json.dumps(cheese_courses, ensure_ascii=False)}'
 
 
 async def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--courses', nargs='+')
-    parser.add_argument('-f', '--course_file', help="File with all the courses delimited by line breaks.")
-    parser.add_argument('-y', '--year', type=int, required=True)
-    parser.add_argument('-m', '--maslul-csv', help="File with all the masluls to download. "
-                                                   "Should be specified in a csv without headers, in the format:"
-                                                   "<faculty>,<hug>,<maslul>,<toar>,<toar_year>.")
-    parser.add_argument('-v', '--verbose', action='store_true')
-    parser.add_argument('-o', '--output-file', type=str, required=True)
-    # TODO: currently only support A and B semesters (not summer)
-    parser.add_argument('-s', '--semester', choices=[Semester.A, Semester.B],
-                        type=Semester.__getitem__, required=True)
-    parser.add_argument('-r', '--concurrent-requests', default=DEFAULT_CONCURRENT_REQUESTS, type=int)
+
+    def add_common_args_to_parser(p: argparse.ArgumentParser):
+        p.add_argument('-y', '--year', type=int, required=True, help="Academic year to process.")
+        p.add_argument('-r', '--concurrent-requests', default=DEFAULT_CONCURRENT_REQUESTS, type=int,
+                            help="Number of concurrent requests.")
+        p.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output.")
+
+    # General arguments for both modes
+    # parser.add_argument('-y', '--year', type=int, required=True, help="Academic year to process.")
+    # parser.add_argument('-r', '--concurrent-requests', default=DEFAULT_CONCURRENT_REQUESTS, type=int,
+    #                     help="Number of concurrent requests.")
+    # parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output.")
+
+
+    subparsers = parser.add_subparsers(dest="mode", required=True)
+
+    # Subparser for "list" mode (no additional arguments required)
+    list_parser = subparsers.add_parser("list",
+                                        help="Output a list of course numbers that exist in the specified year.")
+    list_parser.add_argument("--min", type=int, default=1, help="Minimum course number to look for.")
+    list_parser.add_argument("--max", type=int, default=100000, help="Maximum course number to look for.")
+    list_parser.add_argument('-o', '--output-file', type=str, required=True, help="Output file to save results.")
+    add_common_args_to_parser(list_parser)
+
+    # Subparser for "scrape" mode (requires additional arguments)
+    scrape_parser = subparsers.add_parser("scrape",
+                                          help="Scrape course data for specific courses and save results.")
+    scrape_parser.add_argument('-c', '--courses', nargs='+', help="List of course numbers to scrape.")
+    scrape_parser.add_argument('-f', '--course_file', help="File with all the courses delimited by line breaks.")
+    scrape_parser.add_argument('-o', '--output-dir', type=str, help="Output directory to save results.",
+                               default=os.path.join('.', 'deploy', 'courses'))
+    add_common_args_to_parser(scrape_parser)
+
     args = parser.parse_args()
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO)
 
-    scrape_coros = []
-    if args.courses:
-        scrape_coros.append(collect_by_id(args.courses, args.year, args.concurrent_requests))
+    if args.mode == "list":
+        courses = await collect_by_id(
+            course_ids=list(range(args.min, args.max + 1)),
+            year=args.year,
+            allow_missing_courses=True,
+            include_exams=False,
+            concurrent_requests=args.concurrent_requests,
+            show_progress=True
+        )
+        with open(args.output_file, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(sorted([course.course_id for course in courses], key=lambda x: int(x))))
+        return
 
-    if args.course_file:
-        with open(args.course_file, 'r') as f:
-            course_ids = [line for line in f.read().split('\n') if line]
-            scrape_coros.append(collect_by_id(course_ids, args.year))
+    if args.mode == "scrape":
 
-    if args.maslul_csv:
-        with open(args.maslul_csv, 'r') as f:
-            for row in csv.reader(f):
-                faculty, hug, maslul, toar, toar_year = row
-                toar = Toar[toar]
-                toar_year = ToarYear[toar_year]
-                scrape_coros.append(collect_maslul(args.year, faculty, hug, maslul, toar, toar_year))
+        courses_to_scrape = []
+        if args.courses:
+            courses_to_scrape += args.courses
 
-    course_list_list: List[List[Course]] = await asyncio.gather(*scrape_coros)
-    courses = [course for course_list in course_list_list for course in course_list]
-    js_variable = prepare_cheese_format(courses, args.semester)
-    with open(args.output_file, 'w', encoding='utf-8') as f:
-        f.write(js_variable)
+        if args.course_file:
+            with open(args.course_file, 'r') as f:
+                course_ids = [line for line in f.read().split('\n') if line]
+                courses_to_scrape += course_ids
+
+        courses = await collect_by_id(
+            course_ids=[int(course_id) for course_id in courses_to_scrape],
+            year=args.year,
+            allow_missing_courses=False,
+            include_exams=True,
+            concurrent_requests=args.concurrent_requests,
+            show_progress=True
+        )
+
+        for idx, semester in enumerate([Semester.A, Semester.B]):
+            js_variable = prepare_cheese_format(courses, semester)
+            # Year is always one less in cheesefork than it is in the shnaton
+            filename = f'courses_{args.year - 1}{idx + 1:02}.min.js.test'
+            with open(os.path.join(args.output_dir, filename), 'w', encoding='utf-8') as f:
+                f.write(js_variable)
 
 
 if __name__ == '__main__':
