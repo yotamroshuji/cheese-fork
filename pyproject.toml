@@ -2,21 +2,17 @@
 name = "cheese-fork"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Your Name",email = "you@example.com"}
-]
-readme = "README.md"
+authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<4.0"
+readme = "README.md"
 dependencies = [
-    "hujiscrape (>=1.1.0,<2.0.0)"
+    "hujiscrape>=1.1.1",
 ]
 
-[tool.poetry]
-package-mode = false
-[[tool.poetry.source]]
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
 name = "testpypi"
 url = "https://test.pypi.org/simple/"
-priority = "explicit"
-
-
-[tool.poetry.dependencies]
+explicit = true
