@@ -119,7 +119,11 @@ def prepare_cheese_format(courses: List[Course], semester: Semester) -> str:
     cheese_courses: List[Dict] = []
     existing_course_ids: Set[str] = set()
     for course in courses:
-        course_semester = Semester.from_hebrew(course.semester)
+        try:
+            course_semester = Semester.from_hebrew(course.semester)
+        except ValueError:
+            logging.warning(f"Invalid course semester for %s. Skipping course...", course.course_id)
+            continue
 
         # Dedup the course
         if course.course_id in existing_course_ids:
