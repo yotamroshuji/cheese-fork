@@ -66,7 +66,7 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
             continue
 
         lesson_dict = {
-            "מרצה/מתרגל": "\t".join(set(lesson.lecturers)),
+            "מרצה/מתרגל": "\t".join(sorted(set(lesson.lecturers))),
             "קבוצה": lesson.group,
             "מס.": str(lesson.row),
             "סוג": lesson.type,
