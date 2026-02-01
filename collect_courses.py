@@ -158,7 +158,8 @@ async def collect_by_id(
         fetcher=Fetcher(
             max_concurrency=concurrent_requests,
             tcp_socket_limit=20,
-            force_close_tcp=close_tcp_after_request
+            force_close_tcp=close_tcp_after_request,
+            debug=True
         ),
         max_cpu_workers=cpu_count
     )
