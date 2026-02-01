@@ -80,6 +80,56 @@ def hujiscrape_course_to_cheese(course: Course, semester: Semester) -> Dict:
     return {'general': course_general_dict, 'schedule': course_schedule}
 
 
+async def debug_monitor(scraper):
+    from tqdm.asyncio import tqdm
+    from collections import Counter
+    import time
+
+    tqdm.write("--- Scraper Monitor Started ---")
+
+    while True:
+        await asyncio.sleep(5)
+        try:
+            fetcher = scraper._fetcher
+            dashboard = fetcher._slot_dashboard
+            now = time.time()
+
+            status_counts = Counter()
+            stuck_count = 0
+
+            for info in dashboard.values():
+                status = info['status']
+                duration = now - info['time']
+
+                # Flag tasks running longer than 20s as 'Stuck'
+                if duration > 20.0 and "Working" in status:
+                    stuck_count += 1
+                    # Optional: Rename status for clarity in the breakdown
+                    status = f"Stuck ({int(duration)}s)"
+
+                status_counts[status] += 1
+
+            # Format breakdown string
+            status_str = " | ".join([f"{k}: {v}" for k, v in status_counts.items()])
+
+            # Get semaphore state safely
+            sem_avail = fetcher._semaphore._value if fetcher._semaphore else "N/A"
+            active_tasks = len(dashboard)
+
+            # Only print if there is activity to report
+            if active_tasks > 0:
+                tqdm.write(
+                    f"[{time.strftime('%H:%M:%S')}] "
+                    f"Sem: {sem_avail} | "
+                    f"Active: {active_tasks} | "
+                    f"Stuck: {stuck_count}"
+                )
+                tqdm.write(f"   >>> {status_str}")
+
+        except Exception as e:
+            print("Error in debug monitor:", e)
+
+
 async def collect_by_id(
         course_ids: List[int | str],
         year: int,
@@ -87,7 +137,8 @@ async def collect_by_id(
         concurrent_requests: int = DEFAULT_CONCURRENT_REQUESTS,
         show_progress: bool = True,
         fail_after_n_missing_courses: int = 0,
-        close_tcp_after_request: bool = False
+        close_tcp_after_request: bool = False,
+        cpu_count: int = 1
 ) -> List[Course]:
     """
 
@@ -100,12 +151,18 @@ async def collect_by_id(
                                          if 0, do not raise an exception
     :param close_tcp_after_request: should the TCP connection be closed after each request.
                                     this can help avoid some exceptions that can occur with the scraping.
+    :param cpu_count: number of CPU cores to use for processing htmls
     :return:
     """
     scraper = SingleCourseScraper(
-            fetcher=Fetcher(max_concurrency=concurrent_requests, tcp_socket_limit=20,
-                            force_close_tcp=close_tcp_after_request),
+        fetcher=Fetcher(
+            max_concurrency=concurrent_requests,
+            tcp_socket_limit=20,
+            force_close_tcp=close_tcp_after_request
+        ),
+        max_cpu_workers=cpu_count
     )
+    asyncio.create_task(debug_monitor(scraper))
     return await scraper.scrape(
         course_ids=course_ids,
         year=year,
@@ -157,12 +214,13 @@ async def main():
     def add_common_args_to_parser(p: argparse.ArgumentParser):
         p.add_argument('-y', '--year', type=int, required=True, help="Academic year to process.")
         p.add_argument('-r', '--concurrent-requests', default=DEFAULT_CONCURRENT_REQUESTS, type=int,
-                            help="Number of concurrent requests.")
+                       help="Number of concurrent requests.")
         p.add_argument('-t', '--close-tcp-after-request', action='store_true',
-                            help="Close the TCP connection after each request. This slows down the scraping but can "
-                                 "help avoid some exceptions that can occur with the scraping.")
+                       help="Close the TCP connection after each request. This slows down the scraping but can "
+                            "help avoid some exceptions that can occur with the scraping.")
         p.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output.")
-
+        p.add_argument('--cpu-count', type=int, default=os.cpu_count(),
+                       help="Number of CPU cores to use for processing.")
 
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
@@ -198,7 +256,8 @@ async def main():
             include_exams=False,
             concurrent_requests=args.concurrent_requests,
             show_progress=True,
-            close_tcp_after_request=args.close_tcp_after_request
+            close_tcp_after_request=args.close_tcp_after_request,
+            cpu_count=args.cpu_count
         )
         with open(args.output_file, 'w', encoding='utf-8') as f:
             f.write('\n'.join(sorted([course.course_id for course in courses], key=lambda x: int(x))))
@@ -223,7 +282,12 @@ async def main():
             show_progress=True,
             fail_after_n_missing_courses=args.fail_after_n_missing_courses,
             close_tcp_after_request=args.close_tcp_after_request,
+            cpu_count=args.cpu_count
         )
+
+        # Print course ids that were not found
+        courses_not_downloaded = set(courses_to_scrape) - {course.course_id for course in courses}
+        print("Courses not downloaded:", sorted(courses_not_downloaded))
 
         for idx, semester in enumerate([Semester.A, Semester.B]):
             js_variable = prepare_cheese_format(courses, semester)

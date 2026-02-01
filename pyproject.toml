@@ -6,7 +6,7 @@ authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<4.0"
 readme = "README.md"
 dependencies = [
-    "hujiscrape>=1.1.1",
+    "hujiscrape>=1.2.0",
 ]
 
 [tool.uv]
@@ -16,3 +16,9 @@ package = false
 name = "testpypi"
 url = "https://test.pypi.org/simple/"
 explicit = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.14.14",
+]
