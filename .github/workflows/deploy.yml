@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 8 * * 0'
 
+env:
+  PYTHONUNBUFFERED: "1"
+
 jobs:
   update:
     runs-on: ubuntu-latest
